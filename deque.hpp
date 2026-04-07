@@ -55,10 +55,14 @@ public:
     }
     T &operator*() const {
         if (!dq || idx >= dq->sz) throw invalid_iterator();
-        return dq->data[(dq->head + idx) % dq->cap];
+        size_t pos = dq->head + idx;
+        if (pos >= dq->cap) pos -= dq->cap;
+        return dq->data[pos];
     }
     T *operator->() const noexcept {
-        return &(dq->data[(dq->head + idx) % dq->cap]);
+        size_t pos = dq->head + idx;
+        if (pos >= dq->cap) pos -= dq->cap;
+        return &(dq->data[pos]);
     }
     bool operator==(const iterator &rhs) const {
         return dq == rhs.dq && idx == rhs.idx;
@@ -122,10 +126,14 @@ public:
     }
     const T &operator*() const {
         if (!dq || idx >= dq->sz) throw invalid_iterator();
-        return dq->data[(dq->head + idx) % dq->cap];
+        size_t pos = dq->head + idx;
+        if (pos >= dq->cap) pos -= dq->cap;
+        return dq->data[pos];
     }
     const T *operator->() const noexcept {
-        return &(dq->data[(dq->head + idx) % dq->cap]);
+        size_t pos = dq->head + idx;
+        if (pos >= dq->cap) pos -= dq->cap;
+        return &(dq->data[pos]);
     }
     bool operator==(const iterator &rhs) const {
         return dq == rhs.dq && idx == rhs.idx;
@@ -154,7 +162,9 @@ private:
         size_t i = 0;
         try {
             for (; i < sz; ++i) {
-                new (new_data + i) T(data[(head + i) % cap]);
+                size_t p = head + i;
+                if (p >= cap) p -= cap;
+                new (new_data + i) T(data[p]);
             }
         } catch (...) {
             for (size_t j = 0; j < i; ++j) {
@@ -164,7 +174,9 @@ private:
             throw;
         }
         for (size_t j = 0; j < sz; ++j) {
-            data[(head + j) % cap].~T();
+            size_t p = head + j;
+            if (p >= cap) p -= cap;
+            data[p].~T();
         }
         delete[] reinterpret_cast<char*>(data);
         data = new_data;
@@ -181,7 +193,9 @@ public:
           size_t i = 0;
           try {
               for (; i < sz; ++i) {
-                  new (data + i) T(other.data[(other.head + i) % other.cap]);
+                  size_t p = other.head + i;
+                  if (p >= other.cap) p -= other.cap;
+                  new (data + i) T(other.data[p]);
               }
           } catch (...) {
               for (size_t j = 0; j < i; ++j) {
@@ -209,7 +223,9 @@ public:
           size_t i = 0;
           try {
               for (; i < other.sz; ++i) {
-                  new (new_data + i) T(other.data[(other.head + i) % other.cap]);
+                  size_t p = other.head + i;
+                  if (p >= other.cap) p -= other.cap;
+                  new (new_data + i) T(other.data[p]);
               }
           } catch (...) {
               for (size_t j = 0; j < i; ++j) {
@@ -230,19 +246,27 @@ public:
 
   T &at(const size_t &pos) {
       if (pos >= sz) throw index_out_of_bound();
-      return data[(head + pos) % cap];
+      size_t p = head + pos;
+      if (p >= cap) p -= cap;
+      return data[p];
   }
   const T &at(const size_t &pos) const {
       if (pos >= sz) throw index_out_of_bound();
-      return data[(head + pos) % cap];
+      size_t p = head + pos;
+      if (p >= cap) p -= cap;
+      return data[p];
   }
   T &operator[](const size_t &pos) {
       if (pos >= sz) throw index_out_of_bound();
-      return data[(head + pos) % cap];
+      size_t p = head + pos;
+      if (p >= cap) p -= cap;
+      return data[p];
   }
   const T &operator[](const size_t &pos) const {
       if (pos >= sz) throw index_out_of_bound();
-      return data[(head + pos) % cap];
+      size_t p = head + pos;
+      if (p >= cap) p -= cap;
+      return data[p];
   }
 
   const T &front() const {
@@ -251,7 +275,9 @@ public:
   }
   const T &back() const {
       if (sz == 0) throw container_is_empty();
-      return data[(head + sz - 1) % cap];
+      size_t p = head + sz - 1;
+      if (p >= cap) p -= cap;
+      return data[p];
   }
 
   iterator begin() { return iterator(this, 0); }
@@ -264,7 +290,9 @@ public:
 
   void clear() {
       for (size_t i = 0; i < sz; ++i) {
-          data[(head + i) % cap].~T();
+          size_t p = head + i;
+          if (p >= cap) p -= cap;
+          data[p].~T();
       }
       sz = 0;
       head = 0;
@@ -287,11 +315,21 @@ public:
           pos = iterator(this, idx);
       }
       size_t idx = pos.idx;
-      new (data + (head + sz) % cap) T(data[(head + sz - 1) % cap]);
+      size_t p_new = head + sz;
+      if (p_new >= cap) p_new -= cap;
+      size_t p_old = head + sz - 1;
+      if (p_old >= cap) p_old -= cap;
+      new (data + p_new) T(data[p_old]);
       for (size_t i = sz - 1; i > idx; --i) {
-          data[(head + i) % cap] = data[(head + i - 1) % cap];
+          size_t p1 = head + i;
+          if (p1 >= cap) p1 -= cap;
+          size_t p2 = head + i - 1;
+          if (p2 >= cap) p2 -= cap;
+          data[p1] = data[p2];
       }
-      data[(head + idx) % cap] = val_copy;
+      size_t p_idx = head + idx;
+      if (p_idx >= cap) p_idx -= cap;
+      data[p_idx] = val_copy;
       sz++;
       return iterator(this, idx);
   }
@@ -308,9 +346,15 @@ public:
       }
       size_t idx = pos.idx;
       for (size_t i = idx; i < sz - 1; ++i) {
-          data[(head + i) % cap] = data[(head + i + 1) % cap];
+          size_t p1 = head + i;
+          if (p1 >= cap) p1 -= cap;
+          size_t p2 = head + i + 1;
+          if (p2 >= cap) p2 -= cap;
+          data[p1] = data[p2];
       }
-      data[(head + sz - 1) % cap].~T();
+      size_t p_last = head + sz - 1;
+      if (p_last >= cap) p_last -= cap;
+      data[p_last].~T();
       sz--;
       return iterator(this, idx);
   }
@@ -319,13 +363,17 @@ public:
       if (sz == cap) {
           reallocate(cap == 0 ? 8 : cap * 2);
       }
-      new (data + (head + sz) % cap) T(value);
+      size_t p = head + sz;
+      if (p >= cap) p -= cap;
+      new (data + p) T(value);
       sz++;
   }
 
   void pop_back() {
       if (sz == 0) throw container_is_empty();
-      data[(head + sz - 1) % cap].~T();
+      size_t p = head + sz - 1;
+      if (p >= cap) p -= cap;
+      data[p].~T();
       sz--;
   }
 
@@ -333,8 +381,7 @@ public:
       if (sz == cap) {
           reallocate(cap == 0 ? 8 : cap * 2);
       }
-      size_t new_head = (head - 1 + cap) % cap;
-      if (cap == 0) new_head = 0; // Should not happen since we reallocate
+      size_t new_head = (head == 0) ? cap - 1 : head - 1;
       new (data + new_head) T(value);
       head = new_head;
       sz++;
@@ -343,7 +390,8 @@ public:
   void pop_front() {
       if (sz == 0) throw container_is_empty();
       data[head].~T();
-      head = (head + 1) % cap;
+      head++;
+      if (head == cap) head = 0;
       sz--;
   }
 };
