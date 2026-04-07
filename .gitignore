@@ -1,0 +1,9 @@
+.clang*
+*~
+deque-my.hpp
+CMakeFiles/
+CMakeCache.txt
+code
+dummy.cpp
+Makefile
+cmake_install.cmake
